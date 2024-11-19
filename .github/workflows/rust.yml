@@ -17,7 +17,7 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - name: Install dependencies
-      run: sudo apt install gtk-3
+      run: sudo apt-get install gtk3 tesseract
     - name: Build
       run: cargo build --verbose
     - name: Run tests
