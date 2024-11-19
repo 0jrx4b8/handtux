@@ -1,5 +1,7 @@
 // Prevents additional console window on Windows in release, DO NOT REMOVE!!
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
+
+use std::collections::HashMap;
 use base64::prelude::BASE64_STANDARD;
 use base64::Engine;
 use std::io::Cursor;
@@ -18,7 +20,16 @@ async fn perform_ocr(data_url: String) -> String {
             .unwrap();
     let image = Image::from_dynamic_image(&image_reader).unwrap();
 
-    let default_args = Args::default();
+    let default_args = Args {
+        lang: "eng".to_string() ,
+        config_variables: HashMap::from([(
+            "tessedit_char_whitelist".into(),
+            "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@.;?:/!+=-$£€* '".into(),
+        )]),
+        dpi:Some(150),
+        psm:Some(7),
+        oem:Some(3)
+    };
 
     let output = rusty_tesseract::image_to_string(&image, &default_args).unwrap();
 

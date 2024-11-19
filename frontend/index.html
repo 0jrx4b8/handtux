@@ -8,7 +8,7 @@
 <body>
 <canvas id="canvas" width='400px' height='200px' style='border: 2px solid black; background-color: white'></canvas>
 <script>
-    const invoke = window.__TAURI__.core.invoke;;
+    const invoke = window.__TAURI__.core.invoke;
 
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext('2d');
@@ -59,10 +59,6 @@
         const dataUrl = canvas.toDataURL("image/png");
 
         invoke("perform_ocr", { dataUrl })
-            .then(text => {
-                console.log("OCR Result:", text);
-                alert("OCR Result: " + text);
-            })
             .catch(err => console.error("OCR Error:", err));
 
         ctx.clearRect(0, 0, canvas.width, canvas.height);
