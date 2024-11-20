@@ -21,14 +21,14 @@ async fn perform_ocr(data_url: String) -> String {
     let image = Image::from_dynamic_image(&image_reader).unwrap();
 
     let default_args = Args {
-        lang: "eng".to_string() ,
+        lang: "osd".to_string() ,
         config_variables: HashMap::from([(
             "tessedit_char_whitelist".into(),
             "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789@.;?:/!+=-$£€* '".into(),
         )]),
-        dpi:Some(150),
-        psm:Some(7),
-        oem:Some(3)
+        dpi:Some(600),
+        psm:Some(11),
+        oem:Some(1)
     };
 
     let output = rusty_tesseract::image_to_string(&image, &default_args).unwrap();
