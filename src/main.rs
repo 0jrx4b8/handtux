@@ -8,6 +8,8 @@ use std::io::Cursor;
 use image::ImageReader;
 use rusty_tesseract::{Args, Image};
 
+mod trocr_candle_wrapper;
+
 #[tauri::command]
 async fn perform_ocr(data_url: String) -> String {
     let base64_data = data_url.split(',').nth(1).ok_or("Invalid data URL format").unwrap();
