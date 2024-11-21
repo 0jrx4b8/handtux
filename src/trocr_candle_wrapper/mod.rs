@@ -1,6 +1,8 @@
 // Code definitely copied from
 // https://github.com/huggingface/candle/tree/main/candle-examples/examples/trocr
 
+mod image_processor;
+
 use candle_examples::token_output_stream::TokenOutputStream;
 use candle_nn::VarBuilder;
 use candle_core::{DType, Tensor};
