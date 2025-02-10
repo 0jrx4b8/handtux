@@ -1,13 +1,49 @@
 use eframe::egui::{self, Pos2};
 use egui::{Align, Layout, TopBottomPanel};
 use image::{Rgb, RgbImage};
+use pyo3::{prelude::*, types::PyBytes};
+use std::io::Cursor;
+use std::ffi::CString;
+
+lazy_static::lazy_static! {
+    static ref OCR_MODULE: PyResult<Py<PyModule>> = Python::with_gil(|py| {
+        let code = r#"
+from transformers import TrOCRProcessor, VisionEncoderDecoderModel
+from PIL import Image
+import io
+import numpy as np
+
+# Initialize model once
+processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
+model = VisionEncoderDecoderModel.from_pretrained("microsoft/trocr-base-handwritten")
+
+def process_image(image_bytes: bytes) -> list:
+    # Convert bytes to image with exact size handling
+    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    
+    # Process and run inference
+    pixel_values = processor(image, return_tensors="pt").pixel_values
+    generated_ids = model.generate(pixel_values)
+    
+    # Return multiple candidates (modify if you need beam search results)
+    return [processor.batch_decode(generated_ids, skip_special_tokens=True)[0]]
+"#;
+        PyModule::from_code(
+            py,
+            CString::new(code).expect("Failed to convert code to CString").as_ref(),
+            CString::new("ocr_module.py").expect("Failed to create module path").as_ref(),
+            CString::new("ocr_module").expect("Failed to create module name").as_ref(),
+        )
+        .map(|m| m.into())
+    });
+}
 
 fn painting_frame_to_image(
     painting_frame: &Vec<[Pos2; 2]>,
     width: u32,
     height: u32,
 ) -> image::ImageBuffer<Rgb<u8>, Vec<u8>> {
-    let mut img  = RgbImage::new(width, height);
+    let mut img = RgbImage::new(width, height);
 
     for [start, end] in painting_frame {
         let (x0, y0) = (start.x as i32, start.y as i32);
@@ -46,7 +82,25 @@ fn painting_frame_to_image(
 }
 
 fn image_to_text(image: image::ImageBuffer<Rgb<u8>, Vec<u8>>) -> Vec<String> {
-    vec!["Hello".to_string(), "World".to_string()]
+    // Convert ImageBuffer to PNG bytes
+    let mut bytes: Vec<u8> = Vec::new();
+    image
+        .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Png)
+        .expect("Failed to encode image");
+
+    Python::with_gil(|py| {
+        // Get the preloaded OCR module
+        let ocr_module = OCR_MODULE.as_ref().expect("OCR module failed to load");
+
+        // Call Python function with image bytes
+        let result: Vec<String> = ocr_module
+            .call_method1(py, "process_image", (PyBytes::new(py, &bytes),))
+            .expect("Python call failed")
+            .extract(py)
+            .expect("Failed to extract results");
+
+        result
+    })
 }
 
 fn main() -> eframe::Result {
@@ -70,11 +124,7 @@ fn main() -> eframe::Result {
                     }
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         if ui.button("Recognize").clicked() {
-                            let img = painting_frame_to_image(
-                                &painting_frame,
-                                500,
-                                200,
-                            );
+                            let img = painting_frame_to_image(&painting_frame, 500, 200);
                             suggestions = image_to_text(img);
                             painting_frame.clear();
                         }
