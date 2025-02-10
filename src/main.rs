@@ -1,10 +1,13 @@
 use eframe::egui::{self, Pos2};
-use egui::{Align, Button, Layout, Separator, TopBottomPanel};
-use image::{RgbImage, Rgb};
-use std::path::Path;
+use egui::{Align, Layout, TopBottomPanel};
+use image::{Rgb, RgbImage};
 
-fn save_painting_frame_to_image(painting_frame: &Vec<[Pos2; 2]>, width: u32, height: u32, file_path: &str) -> Result<(), image::ImageError> {
-    let mut img = RgbImage::new(width, height);
+fn painting_frame_to_image(
+    painting_frame: &Vec<[Pos2; 2]>,
+    width: u32,
+    height: u32,
+) -> image::ImageBuffer<Rgb<u8>, Vec<u8>> {
+    let mut img  = RgbImage::new(width, height);
 
     for [start, end] in painting_frame {
         let (x0, y0) = (start.x as i32, start.y as i32);
@@ -24,7 +27,9 @@ fn save_painting_frame_to_image(painting_frame: &Vec<[Pos2; 2]>, width: u32, hei
             if x >= 0 && x < width as i32 && y >= 0 && y < height as i32 {
                 img.put_pixel(x as u32, y as u32, Rgb([255, 255, 255]));
             }
-            if x == x1 && y == y1 { break; }
+            if x == x1 && y == y1 {
+                break;
+            }
             let e2 = 2 * err;
             if e2 >= dy {
                 err += dy;
@@ -37,9 +42,12 @@ fn save_painting_frame_to_image(painting_frame: &Vec<[Pos2; 2]>, width: u32, hei
         }
     }
 
-    img.save(Path::new(file_path))
+    img
 }
 
+fn image_to_text(image: image::ImageBuffer<Rgb<u8>, Vec<u8>>) -> Vec<String> {
+    vec!["Hello".to_string(), "World".to_string()]
+}
 
 fn main() -> eframe::Result {
     let options = eframe::NativeOptions {
@@ -48,21 +56,26 @@ fn main() -> eframe::Result {
     };
 
     let mut painting_frame: Vec<[Pos2; 2]> = vec![];
+    let mut suggestions: Vec<String> = vec![];
 
-    eframe::run_simple_native("app_name", options, move |ctx, _frame| {
-        egui::CentralPanel::default().show(&ctx, |ui| {
+    eframe::run_simple_native("handtux", options, move |ctx, _frame| {
+        egui::CentralPanel::default().show(&ctx, |_ui| {
             TopBottomPanel::top("top_panel").show(ctx, |ui| {
                 ui.horizontal(|ui| {
                     ui.label("Suggestions:");
-                    for suggestion in &["Hello", "World", "Rust", "Egui"] {
-                        if ui.button(*suggestion).clicked() {
+                    for suggestion in suggestions.iter() {
+                        if ui.button(suggestion).clicked() {
                             println!("Suggestion clicked: {}", suggestion);
                         }
                     }
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
-                        if ui.button("Save").clicked() {
-                            println!("Save clicked");
-                            save_painting_frame_to_image(&painting_frame, 500, 200, "output.png").unwrap();
+                        if ui.button("Recognize").clicked() {
+                            let img = painting_frame_to_image(
+                                &painting_frame,
+                                500,
+                                200,
+                            );
+                            suggestions = image_to_text(img);
                             painting_frame.clear();
                         }
                         if ui.button("Options").clicked() {
@@ -70,20 +83,20 @@ fn main() -> eframe::Result {
                         }
                     });
                 });
-            });
 
-            egui::CentralPanel::default().show(ctx, |ui| {
                 if painting_frame.is_empty() {
                     ui.label("Write here:");
                 }
+            });
 
+            egui::CentralPanel::default().show(ctx, |ui| {
                 let response =
                     ui.allocate_rect(ui.available_rect_before_wrap(), egui::Sense::drag());
                 let painter = ui.painter();
 
                 if response.is_pointer_button_down_on() {
                     if let Some(pointer_pos) = response.interact_pointer_pos() {
-                        println!("Pointer pos: {:?}", pointer_pos);
+                        //println!("Pointer pos: {:?}", pointer_pos);
                         painting_frame.push([pointer_pos - response.drag_delta(), pointer_pos]);
                     }
                 }
