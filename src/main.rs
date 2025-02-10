@@ -45,6 +45,10 @@ fn painting_frame_to_image(
 ) -> image::ImageBuffer<Rgb<u8>, Vec<u8>> {
     let mut img = RgbImage::new(width, height);
 
+    for pixel in img.pixels_mut() {
+        *pixel = Rgb([255, 255, 255]);
+    }
+
     for [start, end] in painting_frame {
         let (x0, y0) = (start.x as i32, start.y as i32);
         let (x1, y1) = (end.x as i32, end.y as i32);
@@ -61,7 +65,10 @@ fn painting_frame_to_image(
 
         loop {
             if x >= 0 && x < width as i32 && y >= 0 && y < height as i32 {
-                img.put_pixel(x as u32, y as u32, Rgb([255, 255, 255]));
+                img.put_pixel(x as u32, y as u32, Rgb([0, 0, 0]));
+                img.put_pixel((x+1) as u32, y as u32, Rgb([0, 0, 0]));
+                img.put_pixel(x as u32, (y+1) as u32, Rgb([0, 0, 0]));
+                img.put_pixel((x+1) as u32, (y+1) as u32, Rgb([0, 0, 0]));
             }
             if x == x1 && y == y1 {
                 break;
@@ -104,6 +111,9 @@ fn image_to_text(image: image::ImageBuffer<Rgb<u8>, Vec<u8>>) -> Vec<String> {
 }
 
 fn main() -> eframe::Result {
+    pyo3::prepare_freethreaded_python();
+
+
     let options = eframe::NativeOptions {
         viewport: egui::ViewportBuilder::default().with_inner_size([500.0, 200.0]),
         ..Default::default()
