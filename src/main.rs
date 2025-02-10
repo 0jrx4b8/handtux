@@ -5,6 +5,40 @@ use pyo3::{prelude::*, types::PyBytes};
 use std::io::Cursor;
 use std::ffi::CString;
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_empty_painting_frame() {
+        let painting_frame: Vec<[Pos2; 2]> = vec![];
+        let img = painting_frame_to_image(&painting_frame, 100, 100);
+        assert_eq!(img.dimensions(), (100, 100));
+        // Check all pixels are white
+        for pixel in img.pixels() {
+            assert_eq!(*pixel, Rgb([255, 255, 255]));
+        }
+    }
+
+    #[test]
+    fn test_single_line() {
+        let painting_frame = vec![[Pos2::new(10.0, 10.0), Pos2::new(20.0, 20.0)]];
+        let img = painting_frame_to_image(&painting_frame, 50, 50);
+        assert_eq!(img.dimensions(), (50, 50));
+        // Check some pixels along the line are black
+        assert_eq!(img.get_pixel(10, 10), &Rgb([0, 0, 0]));
+        assert_eq!(img.get_pixel(15, 15), &Rgb([0, 0, 0]));
+        assert_eq!(img.get_pixel(20, 20), &Rgb([0, 0, 0]));
+    }
+
+    #[test]
+    fn test_out_of_bounds() {
+        let painting_frame = vec![[Pos2::new(-10.0, -10.0), Pos2::new(200.0, 200.0)]];
+        let img = painting_frame_to_image(&painting_frame, 100, 100);
+        assert_eq!(img.dimensions(), (100, 100));
+    }
+}
+
 lazy_static::lazy_static! {
     static ref OCR_MODULE: PyResult<Py<PyModule>> = Python::with_gil(|py| {
         let code = r#"
