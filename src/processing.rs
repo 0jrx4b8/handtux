@@ -1,32 +1,14 @@
 use eframe::egui::Pos2;
 use image::{Rgb, RgbImage};
 use pyo3::{prelude::*, types::PyBytes};
-use std::io::Cursor;
 use std::ffi::CString;
+use std::io::Cursor;
+use std::path::Path;
 
 lazy_static::lazy_static! {
     static ref OCR_MODULE: PyResult<Py<PyModule>> = Python::with_gil(|py| {
-        let code = r#"
-from transformers import TrOCRProcessor, VisionEncoderDecoderModel
-from PIL import Image
-import io
-import numpy as np
-
-# Initialize model once
-processor = TrOCRProcessor.from_pretrained("microsoft/trocr-base-handwritten")
-model = VisionEncoderDecoderModel.from_pretrained("microsoft/trocr-base-handwritten")
-
-def process_image(image_bytes: bytes) -> list:
-    # Convert bytes to image with exact size handling
-    image = Image.open(io.BytesIO(image_bytes)).convert("RGB")
-    
-    # Process and run inference
-    pixel_values = processor(image, return_tensors="pt").pixel_values
-    generated_ids = model.generate(pixel_values)
-    
-    # Return multiple candidates (modify if you need beam search results)
-    return [processor.batch_decode(generated_ids, skip_special_tokens=True)[0]]
-"#;
+        let path = Path::new("python/ocr_module.py");
+        let code = std::fs::read_to_string(path).expect("Couldn't read the file...");
         PyModule::from_code(
             py,
             CString::new(code).expect("Failed to convert code to CString").as_ref(),
@@ -36,7 +18,6 @@ def process_image(image_bytes: bytes) -> list:
         .map(|m| m.into())
     });
 }
-
 
 pub fn painting_frame_to_image(
     painting_frame: &Vec<[Pos2; 2]>,
@@ -66,9 +47,9 @@ pub fn painting_frame_to_image(
         loop {
             if x >= 0 && x < width as i32 && y >= 0 && y < height as i32 {
                 img.put_pixel(x as u32, y as u32, Rgb([0, 0, 0]));
-                img.put_pixel((x+1) as u32, y as u32, Rgb([0, 0, 0]));
-                img.put_pixel(x as u32, (y+1) as u32, Rgb([0, 0, 0]));
-                img.put_pixel((x+1) as u32, (y+1) as u32, Rgb([0, 0, 0]));
+                img.put_pixel((x + 1) as u32, y as u32, Rgb([0, 0, 0]));
+                img.put_pixel(x as u32, (y + 1) as u32, Rgb([0, 0, 0]));
+                img.put_pixel((x + 1) as u32, (y + 1) as u32, Rgb([0, 0, 0]));
             }
             if x == x1 && y == y1 {
                 break;
@@ -99,13 +80,16 @@ pub fn image_to_text(image: image::ImageBuffer<Rgb<u8>, Vec<u8>>) -> Vec<String>
         // Get the preloaded OCR module
         let ocr_module = OCR_MODULE.as_ref().expect("OCR module failed to load");
 
-        // Call Python function with image bytes
-        let result: Vec<String> = ocr_module
+        let engine = ocr_module
+            .getattr(py, "get_engine")
+            .expect("Missing get_engine")
+            .call0(py)
+            .expect("Failed to get engine");
+
+        engine
             .call_method1(py, "process_image", (PyBytes::new(py, &bytes),))
             .expect("Python call failed")
             .extract(py)
-            .expect("Failed to extract results");
-
-        result
+            .expect("Failed to extract results")
     })
 }
