@@ -3,7 +3,8 @@ use eframe::egui;
 mod ui;
 mod processing;
 
-fn main() -> eframe::Result {
+#[tokio::main]
+async fn main() -> eframe::Result {
     pyo3::prepare_freethreaded_python();
 
     let options = eframe::NativeOptions {

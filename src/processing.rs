@@ -1,33 +1,16 @@
 use eframe::egui::Pos2;
-use image::{Rgb, RgbImage};
-use pyo3::{prelude::*, types::PyBytes};
-use std::ffi::CString;
-use std::io::Cursor;
-use std::path::Path;
-
-lazy_static::lazy_static! {
-    static ref OCR_MODULE: PyResult<Py<PyModule>> = Python::with_gil(|py| {
-        let path = Path::new("python/ocr_module.py");
-        let code = std::fs::read_to_string(path).expect("Couldn't read the file...");
-        PyModule::from_code(
-            py,
-            CString::new(code).expect("Failed to convert code to CString").as_ref(),
-            CString::new("ocr_module.py").expect("Failed to create module path").as_ref(),
-            CString::new("ocr_module").expect("Failed to create module name").as_ref(),
-        )
-        .map(|m| m.into())
-    });
-}
+use image::{Rgba, RgbaImage};
+use kalosm_ocr::*;
 
 pub fn painting_frame_to_image(
     painting_frame: &Vec<[Pos2; 2]>,
     width: u32,
     height: u32,
-) -> image::ImageBuffer<Rgb<u8>, Vec<u8>> {
-    let mut img = RgbImage::new(width, height);
+) -> image::ImageBuffer<Rgba<u8>, Vec<u8>> {
+    let mut img = RgbaImage::new(width, height);
 
     for pixel in img.pixels_mut() {
-        *pixel = Rgb([255, 255, 255]);
+        *pixel = Rgba([255, 255, 255, 255]);
     }
 
     for [start, end] in painting_frame {
@@ -46,10 +29,10 @@ pub fn painting_frame_to_image(
 
         loop {
             if x >= 0 && x < width as i32 && y >= 0 && y < height as i32 {
-                img.put_pixel(x as u32, y as u32, Rgb([0, 0, 0]));
-                img.put_pixel((x + 1) as u32, y as u32, Rgb([0, 0, 0]));
-                img.put_pixel(x as u32, (y + 1) as u32, Rgb([0, 0, 0]));
-                img.put_pixel((x + 1) as u32, (y + 1) as u32, Rgb([0, 0, 0]));
+                img.put_pixel(x as u32, y as u32, Rgba([0, 0, 0, 255]));
+                img.put_pixel((x + 1) as u32, y as u32, Rgba([0, 0, 0, 255]));
+                img.put_pixel(x as u32, (y + 1) as u32, Rgba([0, 0, 0, 255]));
+                img.put_pixel((x + 1) as u32, (y + 1) as u32, Rgba([0, 0, 0, 255]));
             }
             if x == x1 && y == y1 {
                 break;
@@ -69,27 +52,14 @@ pub fn painting_frame_to_image(
     img
 }
 
-pub fn image_to_text(image: image::ImageBuffer<Rgb<u8>, Vec<u8>>) -> Vec<String> {
-    // Convert ImageBuffer to PNG bytes
-    let mut bytes: Vec<u8> = Vec::new();
-    image
-        .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Png)
-        .expect("Failed to encode image");
-
-    Python::with_gil(|py| {
-        // Get the preloaded OCR module
-        let ocr_module = OCR_MODULE.as_ref().expect("OCR module failed to load");
-
-        let engine = ocr_module
-            .getattr(py, "get_engine")
-            .expect("Missing get_engine")
-            .call0(py)
-            .expect("Failed to get engine");
-
-        engine
-            .call_method1(py, "process_image", (PyBytes::new(py, &bytes),))
-            .expect("Python call failed")
-            .extract(py)
-            .expect("Failed to extract results")
-    })
+pub async fn image_to_text(image: image::ImageBuffer<Rgba<u8>, Vec<u8>>) -> Vec<String> {
+    println!("loading model...");
+    let mut model = Ocr::builder().build().await.unwrap();
+    println!("model loaded");
+    println!("recognizing text...");
+    let text = model.recognize_text(OcrInferenceSettings::new(image));
+    println!("text recognized");
+    
+    println!("Text: {:?}", text);
+    vec![text.unwrap()]
 }

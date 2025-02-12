@@ -31,7 +31,11 @@ impl eframe::App for HandtuxUI {
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         if ui.button("Recognize").clicked() {
                             let img = painting_frame_to_image(&self.painting_frame, 500, 200);
-                            self.candidates = image_to_text(img);
+                            self.candidates = vec![];
+                            tokio::spawn(async move {
+                                let text = image_to_text(img).await;
+                                println!("Text: {:?}", text);
+                            });
                             self.painting_frame.clear();
                         }
                         if ui.button("Options").clicked() {
