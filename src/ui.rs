@@ -30,7 +30,7 @@ impl eframe::App for HandtuxUI {
                     }
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         if ui.button("Recognize").clicked() {
-                            let img = painting_frame_to_image(&self.painting_frame, 500, 200);
+                            let img = painting_frame_to_image(&self.painting_frame, 384, 384);
                             self.candidates = image_to_text(img);
                             self.painting_frame.clear();
                         }

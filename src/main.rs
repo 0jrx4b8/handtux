@@ -3,6 +3,9 @@ use eframe::egui;
 mod ui;
 mod processing;
 
+mod trocr_processor;
+mod trocr_model;
+
 fn main() -> eframe::Result {
     pyo3::prepare_freethreaded_python();
 
