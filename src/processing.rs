@@ -1,23 +1,19 @@
 use eframe::egui::Pos2;
 use image::{Rgb, RgbImage};
-use pyo3::{prelude::*, types::PyBytes};
-use std::ffi::CString;
-use std::io::Cursor;
-use std::path::Path;
 
-lazy_static::lazy_static! {
-    static ref OCR_MODULE: PyResult<Py<PyModule>> = Python::with_gil(|py| {
-        let path = Path::new("python/ocr_module.py");
-        let code = std::fs::read_to_string(path).expect("Couldn't read the file...");
-        PyModule::from_code(
-            py,
-            CString::new(code).expect("Failed to convert code to CString").as_ref(),
-            CString::new("ocr_module.py").expect("Failed to create module path").as_ref(),
-            CString::new("ocr_module").expect("Failed to create module name").as_ref(),
-        )
-        .map(|m| m.into())
-    });
-}
+// lazy_static::lazy_static! {
+//     static ref OCR_MODULE: PyResult<Py<PyModule>> = Python::with_gil(|py| {
+//         let path = Path::new("python/ocr_module.py");
+//         let code = std::fs::read_to_string(path).expect("Couldn't read the file...");
+//         PyModule::from_code(
+//             py,
+//             CString::new(code).expect("Failed to convert code to CString").as_ref(),
+//             CString::new("ocr_module.py").expect("Failed to create module path").as_ref(),
+//             CString::new("ocr_module").expect("Failed to create module name").as_ref(),
+//         )
+//         .map(|m| m.into())
+//     });
+// }
 
 pub fn painting_frame_to_image(
     painting_frame: &Vec<[Pos2; 2]>,
@@ -69,27 +65,27 @@ pub fn painting_frame_to_image(
     img
 }
 
-pub fn image_to_text(image: image::ImageBuffer<Rgb<u8>, Vec<u8>>) -> Vec<String> {
-    // Convert ImageBuffer to PNG bytes
-    let mut bytes: Vec<u8> = Vec::new();
-    image
-        .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Png)
-        .expect("Failed to encode image");
+// pub fn image_to_text(image: image::ImageBuffer<Rgb<u8>, Vec<u8>>) -> Vec<String> {
+//     // Convert ImageBuffer to PNG bytes
+//     let mut bytes: Vec<u8> = Vec::new();
+//     image
+//         .write_to(&mut Cursor::new(&mut bytes), image::ImageFormat::Png)
+//         .expect("Failed to encode image");
 
-    Python::with_gil(|py| {
-        // Get the preloaded OCR module
-        let ocr_module = OCR_MODULE.as_ref().expect("OCR module failed to load");
+//     Python::with_gil(|py| {
+//         // Get the preloaded OCR module
+//         let ocr_module = OCR_MODULE.as_ref().expect("OCR module failed to load");
 
-        let engine = ocr_module
-            .getattr(py, "get_engine")
-            .expect("Missing get_engine")
-            .call0(py)
-            .expect("Failed to get engine");
+//         let engine = ocr_module
+//             .getattr(py, "get_engine")
+//             .expect("Missing get_engine")
+//             .call0(py)
+//             .expect("Failed to get engine");
 
-        engine
-            .call_method1(py, "process_image", (PyBytes::new(py, &bytes),))
-            .expect("Python call failed")
-            .extract(py)
-            .expect("Failed to extract results")
-    })
-}
+//         engine
+//             .call_method1(py, "process_image", (PyBytes::new(py, &bytes),))
+//             .expect("Python call failed")
+//             .extract(py)
+//             .expect("Failed to extract results")
+//     })
+// }
