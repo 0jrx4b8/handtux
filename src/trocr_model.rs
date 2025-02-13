@@ -6,7 +6,6 @@ use candle_transformers::models::{trocr, vit};
 use tokenizers::Tokenizer;
 
 pub struct TrOCRImplementationHandtux {
-    tokenizer: Tokenizer,
     processor: ImageProcessor,
     device: Device,
     model: trocr::TrOCRModel,
@@ -27,7 +26,7 @@ impl TrOCRImplementationHandtux {
             .model(String::from("ToluClassics/candle-trocr-tokenizer"))
             .get("tokenizer.json")
             .unwrap();
-        let tokenizer = Tokenizer::from_file(tokenizer_path.clone()).unwrap();
+        // let tokenizer = Tokenizer::from_file(tokenizer_path.clone()).unwrap();
         let tokenizer_dec = TokenOutputStream::new(Tokenizer::from_file(tokenizer_path).unwrap());
 
         let device = Device::cuda_if_available(0).unwrap(); // What is an ordinal ???
@@ -61,7 +60,6 @@ impl TrOCRImplementationHandtux {
         let model = trocr::TrOCRModel::new(encoder_config, decoder_config, vb).unwrap();
 
         Self {
-            tokenizer,
             processor: ImageProcessor::new(),
             device,
             model,
