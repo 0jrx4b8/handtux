@@ -29,8 +29,7 @@ impl TrOCRImplementationHandtux {
             .get("tokenizer.json")
             .unwrap();
         let tokenizer = Tokenizer::from_file(tokenizer_path.clone()).unwrap();
-        let tokenizer_dec =
-            TokenOutputStream::new(Tokenizer::from_file(tokenizer_path).unwrap());
+        let tokenizer_dec = TokenOutputStream::new(Tokenizer::from_file(tokenizer_path).unwrap());
 
         let device = Device::cuda_if_available(0).unwrap(); // What is an ordinal ???
 
@@ -77,7 +76,11 @@ impl TrOCRImplementationHandtux {
         image: ImageBuffer<Rgb<u8>, Vec<u8>>,
     ) -> Result<Vec<String>, Error> {
         println!("Preprocessing image...");
-        let preprocessed = self.processor.preprocess(image)?.to_device(&self.device)?;
+        let preprocessed = self
+            .processor
+            .preprocess(image)?
+            .unsqueeze(0)?
+            .to_device(&self.device)?;
         println!("Image preprocessed!");
 
         // Encode the image
