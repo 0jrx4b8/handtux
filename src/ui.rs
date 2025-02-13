@@ -1,7 +1,7 @@
 use eframe::egui::{self, Pos2};
 use egui::{Align, Layout, TopBottomPanel};
 
-use crate::{processing::painting_frame_to_image, trocr_model};
+use crate::trocr_model;
 
 pub struct HandtuxUI {
     painting_frame: Vec<[Pos2; 2]>,
@@ -32,8 +32,7 @@ impl eframe::App for HandtuxUI {
                     }
                     ui.with_layout(Layout::right_to_left(Align::Center), |ui| {
                         if ui.button("Recognize").clicked() {
-                            let img = painting_frame_to_image(&self.painting_frame, 384, 384);
-                            self.candidates = self.trocr_model.get_candidates(img).unwrap();
+                            self.candidates = self.trocr_model.get_candidates(&self.painting_frame).unwrap();
                             self.painting_frame.clear();
                         }
                         if ui.button("Options").clicked() {

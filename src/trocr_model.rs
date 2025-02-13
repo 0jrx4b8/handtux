@@ -3,7 +3,6 @@ use candle_core::{DType, Device, Error, Tensor};
 use candle_examples::token_output_stream::TokenOutputStream;
 use candle_nn::VarBuilder;
 use candle_transformers::models::{trocr, vit};
-use image::{ImageBuffer, Rgb};
 use tokenizers::Tokenizer;
 
 pub struct TrOCRImplementationHandtux {
@@ -73,12 +72,12 @@ impl TrOCRImplementationHandtux {
 
     pub fn get_candidates(
         &mut self,
-        image: ImageBuffer<Rgb<u8>, Vec<u8>>,
+        painting_frame: &Vec<[eframe::egui::Pos2; 2]>,
     ) -> Result<Vec<String>, Error> {
         println!("Preprocessing image...");
         let preprocessed = self
             .processor
-            .preprocess(image)?
+            .preprocess(painting_frame)?
             .unsqueeze(0)?
             .to_device(&self.device)?;
         println!("Image preprocessed!");

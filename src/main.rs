@@ -1,6 +1,5 @@
 use eframe::egui;
 
-mod processing;
 mod ui;
 
 mod trocr_model;
